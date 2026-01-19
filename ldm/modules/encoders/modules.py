@@ -270,9 +270,10 @@ class FrozenOpenCLIPImageEncoder(AbstractEncoder):
         return self(image)
 
 sys.path.append("./dinov2")
-import hubconf
+# import hubconf
 from omegaconf import OmegaConf
-config_path = './configs/anydoor.yaml'
+import os
+config_path = '/workspace/HairPort/AnyDoor/configs/anydoor.yaml'
 config = OmegaConf.load(config_path)
 DINOv2_weight_path = config.model.params.cond_stage_config.weight
 
@@ -282,7 +283,13 @@ class FrozenDinoV2Encoder(AbstractEncoder):
     """
     def __init__(self, device="cuda", freeze=True):
         super().__init__()
-        dinov2 = hubconf.dinov2_vitg14() 
+        model_path = '/workspace/HairPort/AnyDoor/dinov2_vitg14_pretrain.pth'
+        if os.path.exists(model_path):
+            dinov2 = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitg14', pretrained=False)
+            dinov2.load_state_dict(torch.load(model_path))
+        else:
+            dinov2 = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitg14')
+            torch.save(dinov2.state_dict(), model_path)
         state_dict = torch.load(DINOv2_weight_path)
         dinov2.load_state_dict(state_dict, strict=False)
         self.model = dinov2.to(device)
